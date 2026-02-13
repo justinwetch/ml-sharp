@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHARP Viewer — 3D from a Single Photo</title>
+    <meta name="description" content="Upload a photo and instantly generate an interactive 3D scene using Apple's SHARP model.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <!-- Upload / Landing Screen -->
+    <div id="upload-screen" class="screen active">
+        <div class="upload-container">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <defs>
+                            <linearGradient id="logo-grad" x1="0" y1="0" x2="48" y2="48">
+                                <stop offset="0%" stop-color="#8B5CF6"/>
+                                <stop offset="100%" stop-color="#06B6D4"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="url(#logo-grad)" stroke-width="2.5" fill="none"/>
+                        <path d="M24 4L44 14L24 24L4 14L24 4Z" fill="url(#logo-grad)" opacity="0.15"/>
+                        <circle cx="24" cy="24" r="6" fill="url(#logo-grad)" opacity="0.6"/>
+                        <path d="M24 18V30M18 24H30" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h1>SHARP <span class="accent">Viewer</span></h1>
+                <p class="subtitle">Single-image 3D scene generation powered by Apple's SHARP model</p>
+            </div>
+
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <div class="upload-icon">
+                        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                            <rect x="4" y="4" width="48" height="48" rx="12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.4"/>
+                            <path d="M28 20V36M20 28L28 20L36 28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="drop-text">Drop an image here</p>
+                    <p class="drop-subtext">or click to browse • JPG, PNG, HEIC, WebP</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" hidden>
+            </div>
+
+            <div id="preview-area" class="preview-area hidden">
+                <img id="preview-image" alt="Preview">
+                <div class="preview-info">
+                    <span id="preview-name" class="filename"></span>
+                    <button id="change-btn" class="btn-ghost">Change</button>
+                </div>
+                <button id="generate-btn" class="btn-primary">
+                    <span class="btn-text">Generate 3D Scene</span>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M3 9H15M15 9L10 4M15 9L10 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Past results -->
+            <div id="history-section" class="history-section hidden">
+                <h3>Previous Results</h3>
+                <div id="history-grid" class="history-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Screen -->
+    <div id="processing-screen" class="screen">
+        <div class="processing-container">
+            <div class="processing-visual">
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring delay-1"></div>
+                <div class="pulse-ring delay-2"></div>
+                <div class="processing-icon">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                        <path d="M20 4L36 12V28L20 36L4 28V12L20 4Z" stroke="url(#logo-grad)" stroke-width="2" fill="none">
+                            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="8s" repeatCount="indefinite"/>
+                        </path>
+                    </svg>
+                </div>
+            </div>
+            <h2>Generating 3D Scene</h2>
+            <p class="processing-status" id="processing-status">Loading image and running inference...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p class="processing-time" id="processing-time">This typically takes 10–30 seconds</p>
+        </div>
+    </div>
+
+    <!-- 3D Viewer Screen -->
+    <div id="viewer-screen" class="screen">
+        <div class="viewer-header">
+            <button id="back-btn" class="btn-icon" title="Back to upload">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M15 10H5M5 10L10 5M5 10L10 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div class="viewer-title">
+                <span id="viewer-filename" class="filename"></span>
+                <span id="viewer-stats" class="stats"></span>
+            </div>
+            <div class="viewer-controls">
+                <span id="viewer-fps" class="fps-counter">-- fps</span>
+                <button id="reset-camera-btn" class="btn-ghost btn-sm" title="Reset camera">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M2 8C2 4.686 4.686 2 8 2C10.21 2 12.117 3.208 13.17 5M14 8C14 11.314 11.314 14 8 14C5.79 14 3.883 12.792 2.83 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M13 2V5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M3 14V11H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+        <canvas id="viewer-canvas"></canvas>
+        <div id="viewer-spinner" class="viewer-spinner">
+            <div class="spinner"></div>
+            <p>Loading 3D scene...</p>
+        </div>
+        <div class="viewer-hints">
+            <span>🖱 Drag to orbit</span>
+            <span>⌥ + Drag to pan</span>
+            <span>Scroll to zoom</span>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
